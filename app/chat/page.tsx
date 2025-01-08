@@ -1,6 +1,4 @@
-"use client";
-
-import React, { useState } from "react";
+import React from "react";
 import Chat from "@/components/Chat";
 
 const ChatPage: React.FC = () => {

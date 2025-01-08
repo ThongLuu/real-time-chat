@@ -1,9 +1,10 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { v4 as uuidv4 } from "uuid";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
-import { Avatar } from "primereact/avatar";
 import { ScrollPanel } from "primereact/scrollpanel";
 
 const Chat = () => {
@@ -111,9 +112,9 @@ const Chat = () => {
   };
 
   return (
-    <div className="flex h-screen w-full">
+    <div className="flex min-h-screen">
       {/* Sidebar */}
-      <div className="w-1/4 bg-gray-100 p-4 shadow-md">
+      <div className="bg-gray-100 p-4 shadow-md w-3 sm:w-3">
         <h3 className="text-lg font-bold mb-4" style={{ color: "black" }}>
           Chat Rooms
         </h3>
@@ -126,8 +127,7 @@ const Chat = () => {
               }`}
               onClick={() => joinRoom(room)}
             >
-              <div className="flex items-center gap-2">
-                <Avatar label={room[0]} className="bg-blue-500 text-white" />
+              <div className="flex items-center gap-2 align-items-center">
                 <span style={{ color: "black" }}>{room}</span>
               </div>
             </li>
@@ -136,33 +136,35 @@ const Chat = () => {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-col w-full">
+      <div className="flex flex-column flex-grow-1 w-9 sm:w-9">
         {/* Messages */}
-        <ScrollPanel className="flex-grow p-4" style={{ height: "90%" }}>
+        <div
+          className="flex-grow-1 p-4 overflow-auto"
+          style={{ maxHeight: "calc(100vh - 88px)" }}
+        >
           {messages.map((msg, index) => (
             <div
               key={index}
               className={`flex ${
-                msg.sender === sender ? "justify-end" : "justify-start"
+                msg.sender === sender
+                  ? "justify-content-end"
+                  : "justify-content-start"
               } mb-3`}
             >
-              <div className="flex items-center gap-2">
-                {/* Tin nhắn */}
-                <div
-                  className={`p-3 rounded-lg shadow-md bg-blue-500 text-white`}
-                >
-                  <div className="font-bold">{msg.sender}</div>
-                  <div>{msg.content}</div>
-                </div>
+              <div
+                className={`p-3 rounded-lg shadow-md bg-blue-500 text-white border-round-lg`}
+              >
+                <div className="font-bold">{msg.sender}</div>
+                <div>{msg.content}</div>
               </div>
             </div>
           ))}
-        </ScrollPanel>
+        </div>
 
         {/* Input */}
-        <div className="flex p-4 bg-white border-t-2 mt-auto w-full">
+        <div className="flex align-items-center p-4 bg-white border-top-1 border-gray-300">
           <InputText
-            className="flex-grow max-w-full"
+            className="flex-grow-1 w-full h-2rem"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type your message..."
@@ -175,7 +177,7 @@ const Chat = () => {
           <Button
             label="Send"
             icon="pi pi-send"
-            className="p-button-rounded p-button-primary ml-2"
+            className="p-button-rounded p-button-primary ml-2 p-2"
             onClick={sendMessage}
             disabled={!currentRoom}
           />
