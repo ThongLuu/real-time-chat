@@ -12,7 +12,7 @@ const Chat = () => {
     { sender: string; content: string }[]
   >([]);
   const [newMessage, setNewMessage] = useState("");
-  const [currentRoom, setCurrentRoom] = useState<string | null>("Room 1");
+  const [currentRoom, setCurrentRoom] = useState<string>("Room 1");
   const [sender, setSender] = useState<string>("");
   const [isSending, setIsSending] = useState<boolean>(false); // Track if a message is being sent
 
@@ -20,7 +20,6 @@ const Chat = () => {
   useEffect(() => {
     const newSocket = io("http://localhost:3001");
     setSocket(newSocket);
-
     return () => {
       newSocket.disconnect();
     };
@@ -28,13 +27,18 @@ const Chat = () => {
 
   // Gán sender
   useEffect(() => {
+    joinRoom(currentRoom);
     let savedSender = localStorage.getItem("chat_sender");
     if (!savedSender) {
       savedSender = `User-${uuidv4().slice(0, 6)}`;
       localStorage.setItem("chat_sender", savedSender);
     }
     setSender(savedSender);
-  }, []);
+    const savedMessages = localStorage.getItem(currentRoom);
+    if (savedMessages) {
+      setMessages(JSON.parse(savedMessages));
+    }
+  }, [socket]);
 
   // Nhận tin nhắn
   useEffect(() => {
