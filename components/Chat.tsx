@@ -5,7 +5,6 @@ import { io, Socket } from "socket.io-client";
 import { v4 as uuidv4 } from "uuid";
 import { InputText } from "primereact/inputtext";
 import { Button } from "primereact/button";
-import { ScrollPanel } from "primereact/scrollpanel";
 
 const Chat = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -13,9 +12,10 @@ const Chat = () => {
     { sender: string; content: string }[]
   >([]);
   const [newMessage, setNewMessage] = useState("");
-  const [currentRoom, setCurrentRoom] = useState<string>("Room 1");
+  const [currentRoom, setCurrentRoom] = useState<string>("");
   const [sender, setSender] = useState<string>("");
-  const [isSending, setIsSending] = useState<boolean>(false); // Track if a message is being sent
+  const [isSending, setIsSending] = useState<boolean>(false);
+  const [rooms, setRooms] = useState<string[]>([]); // Danh sách các phòng chat
 
   // Kết nối socket
   useEffect(() => {
@@ -25,6 +25,39 @@ const Chat = () => {
       newSocket.disconnect();
     };
   }, []);
+
+  useEffect(() => {
+    if (!currentRoom && rooms.length > 0) {
+      setCurrentRoom(rooms[0]); // Chọn phòng đầu tiên nếu không có currentRoom
+    }
+  }, [rooms, currentRoom]);
+
+  // Lấy danh sách phòng từ server
+  useEffect(() => {
+    const fetchRoomsAndMessages = async () => {
+      try {
+        const response = await fetch("http://localhost:3001/api/rooms");
+        const data = await response.json();
+        const roomNames = Object.keys(data);
+
+        if (roomNames.length > 0) {
+          // Nếu không có currentRoom, chọn phòng đầu tiên trong danh sách
+          if (!currentRoom) {
+            setCurrentRoom(roomNames[0]);
+          }
+
+          setRooms(roomNames); // Lưu danh sách phòng vào state
+
+          // Lấy tin nhắn cho phòng hiện tại
+          setMessages(data[currentRoom] || []);
+        }
+      } catch (error) {
+        console.error("Failed to load rooms and messages", error);
+      }
+    };
+
+    fetchRoomsAndMessages();
+  }, [currentRoom]);
 
   // Gán sender
   useEffect(() => {
@@ -44,21 +77,11 @@ const Chat = () => {
   // Nhận tin nhắn
   useEffect(() => {
     if (socket) {
-      // Đảm bảo rằng sự kiện 'chat_message' chỉ được đăng ký một lần
-      socket.off("chat_message"); // Tắt sự kiện trước khi đăng ký lại
+      socket.off("chat_message");
       socket.on("chat_message", (message) => {
         if (message.sender !== sender || !isSending) {
           setMessages((prevMessages) => {
             const updatedMessages = [...prevMessages, message];
-
-            // Lưu tin nhắn vào localStorage theo tên phòng
-            if (currentRoom) {
-              localStorage.setItem(
-                currentRoom,
-                JSON.stringify(updatedMessages)
-              );
-            }
-
             return updatedMessages;
           });
         }
@@ -74,24 +97,15 @@ const Chat = () => {
         content: newMessage.trim(),
         roomName: currentRoom,
       };
-
-      // Gửi tin nhắn lên server
       socket.emit("chat_message", messagePayload);
 
-      // Cập nhật state trước khi gửi tin nhắn đi để tránh duplicate
+      // Cập nhật tin nhắn trong state mà không cần lưu vào localStorage
       setMessages((prevMessages) => [
         ...prevMessages,
         { sender, content: newMessage.trim() },
       ]);
-      setNewMessage(""); // Reset input
-
-      setIsSending(true); // Đánh dấu là đang gửi tin nhắn
-      if (currentRoom) {
-        localStorage.setItem(
-          currentRoom,
-          JSON.stringify([...messages, { sender, content: newMessage.trim() }])
-        );
-      }
+      setNewMessage("");
+      setIsSending(true);
     }
   };
 
@@ -99,14 +113,12 @@ const Chat = () => {
   const joinRoom = (roomName: string) => {
     if (socket) {
       setCurrentRoom(roomName);
-      setMessages([]); // Reset tin nhắn khi chuyển phòng
-
-      // Tải lại tin nhắn đã lưu từ localStorage nếu có
-      const savedMessages = localStorage.getItem(roomName);
+      const savedMessages = rooms[roomName];
       if (savedMessages) {
-        setMessages(JSON.parse(savedMessages));
+        setMessages(savedMessages);
+      } else {
+        setMessages([]); // Nếu không có tin nhắn, để rỗng
       }
-
       socket.emit("join_room", roomName);
     }
   };
@@ -119,7 +131,7 @@ const Chat = () => {
           Chat Rooms
         </h3>
         <ul className="space-y-2">
-          {["Room 1", "Room 2", "Room 3"].map((room) => (
+          {rooms.map((room) => (
             <li
               key={room}
               className={`p-3 rounded-lg cursor-pointer hover:bg-blue-100 transition ${
@@ -140,7 +152,7 @@ const Chat = () => {
         {/* Messages */}
         <div
           className="flex-grow-1 p-4 overflow-auto"
-          style={{ maxHeight: "calc(100vh - 88px)" }}
+          style={{ maxHeight: "calc(100vh - 82px)" }}
         >
           {messages.map((msg, index) => (
             <div
@@ -176,10 +188,9 @@ const Chat = () => {
           />
           <Button
             label="Send"
+            className="ml-2"
             icon="pi pi-send"
-            className="p-button-rounded p-button-primary ml-2 p-2"
             onClick={sendMessage}
-            disabled={!currentRoom}
           />
         </div>
       </div>
