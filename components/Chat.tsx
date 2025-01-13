@@ -13,7 +13,7 @@ const Chat = () => {
   >([]);
   const [newMessage, setNewMessage] = useState("");
   const [currentRoom, setCurrentRoom] = useState<string>("");
-  const [sender, setSender] = useState<string>("");
+  const [sender, setSender] = useState<string>("User-Gearvn");
   const [isSending, setIsSending] = useState<boolean>(false);
   const [rooms, setRooms] = useState<string[]>([]); // Danh sách các phòng chat
 
@@ -59,19 +59,8 @@ const Chat = () => {
     fetchRoomsAndMessages();
   }, [currentRoom]);
 
-  // Gán sender
   useEffect(() => {
     joinRoom(currentRoom);
-    let savedSender = localStorage.getItem("chat_sender");
-    if (!savedSender) {
-      savedSender = `User-${uuidv4().slice(0, 6)}`;
-      localStorage.setItem("chat_sender", savedSender);
-    }
-    setSender(savedSender);
-    const savedMessages = localStorage.getItem(currentRoom);
-    if (savedMessages) {
-      setMessages(JSON.parse(savedMessages));
-    }
   }, [socket]);
 
   // Nhận tin nhắn
@@ -159,8 +148,8 @@ const Chat = () => {
               key={index}
               className={`flex ${
                 msg.sender === sender
-                  ? "justify-content-end"
-                  : "justify-content-start"
+                  ? "justify-content-start"
+                  : "justify-content-end"
               } mb-3`}
             >
               <div
